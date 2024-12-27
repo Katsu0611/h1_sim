@@ -11,7 +11,6 @@ import numpy as np
 import omni.timeline
 import omni.ui as ui
 from omni.isaac.core.articulations import Articulation
-from omni.isaac.core.objects.cuboid import FixedCuboid
 from omni.isaac.core.prims import XFormPrim
 from omni.isaac.core.utils.prims import is_prim_path_valid
 from omni.isaac.core.utils.stage import add_reference_to_stage, create_new_stage, get_current_stage
@@ -133,7 +132,6 @@ class UIBuilder:
 
     def _on_init(self):
         self._articulation = None
-        self._cuboid = None
         self._scenario = ExampleScenario()
 
     def _add_light_to_stage(self):
@@ -157,9 +155,8 @@ class UIBuilder:
         and avoid loading anything if they are.  In this case, the user would still need to add
         their assets to the World (which has low overhead).  See commented code section in this function.
         """
-        # Load the UR10e
-        robot_prim_path = "/ur10e"
-        path_to_robot_usd = get_assets_root_path() + "/Isaac/Robots/UniversalRobots/ur10e/ur10e.usd"
+        robot_prim_path = "/h1"
+        path_to_robot_usd = get_assets_root_path() + "/Isaac/Robots/Unitree/H1/h1.usd"
 
         # Do not reload assets when hot reloading.  This should only be done while extension is under development.
         # if not is_prim_path_valid(robot_prim_path):
@@ -171,18 +168,18 @@ class UIBuilder:
         create_new_stage()
         self._add_light_to_stage()
         add_reference_to_stage(path_to_robot_usd, robot_prim_path)
+        world = World(stage_units_in_meters=0.01)
+        world.scene.add_default_ground_plane()
 
-        # Create a cuboid
-        self._cuboid = FixedCuboid(
-            "/Scenario/cuboid", position=np.array([0.3, 0.3, 0.5]), size=0.05, color=np.array([255, 0, 0])
-        )
+        # Move robot along Z-axis
+        robot_prim = XFormPrim(robot_prim_path)
+        robot_prim.set_world_pose([0.0, 0.0, 1.3])
 
         self._articulation = Articulation(robot_prim_path)
 
         # Add user-loaded objects to the World
         world = World.instance()
         world.scene.add(self._articulation)
-        world.scene.add(self._cuboid)
 
     def _setup_scenario(self):
         """
@@ -202,7 +199,7 @@ class UIBuilder:
 
     def _reset_scenario(self):
         self._scenario.teardown_scenario()
-        self._scenario.setup_scenario(self._articulation, self._cuboid)
+        self._scenario.setup_scenario(self._articulation)
 
     def _on_post_reset_btn(self):
         """
